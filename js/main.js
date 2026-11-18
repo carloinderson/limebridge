@@ -184,10 +184,12 @@
         Onderwerp:subj, Bericht:q
       })
     }).then(r=>r.json().then(d=>({ok:r.ok,d}))).then(({ok,d})=>{
-      if(!ok || String(d.success)!=='true') throw new Error(d && d.message || 'send failed');
+      if(!ok || String(d.success)!=='true'){ const e=new Error(d && d.message || 'send failed'); e.activation=/activat/i.test(e.message); throw e; }
       th.innerHTML = bi(`Dank u, ${safe}. Uw aanvraag is verzonden; wij reageren binnen één werkdag.`, `Thank you, ${safe}. Your request has been sent; we respond within one business day.`);
       f.reset(); fillSelect();
-    }).catch(()=>{
+    }).catch(err=>{
+      try{ console.warn('[Limebridge form]', err && err.message); }catch(_){}
+      if(err && err.activation){ th.innerHTML = bi('Bijna klaar: dit formulier moet eenmalig worden geactiveerd. Open de e-mail van FormSubmit in de mailbox info@limebridge.sr, klik op “Activate Form” en verstuur uw aanvraag daarna opnieuw.','Almost there: this form needs a one-time activation. Open the FormSubmit email in the info@limebridge.sr mailbox, click “Activate Form” and send your request again.'); return; }
       th.innerHTML = bi('Het verzenden is niet gelukt. Probeer het opnieuw, of mail ons op info@limebridge.sr of bel (+597) 530185.','Sending failed. Please try again, or email info@limebridge.sr or call (+597) 530185.');
     }).finally(()=>{ btn.disabled=false; });
   });
