@@ -200,12 +200,13 @@
     const id=a.getAttribute('href').slice(1); if(!id) return;
     const target=document.getElementById(id); if(!target) return;
     e.preventDefault();
-    target.scrollIntoView({behavior: reduce?'auto':'smooth', block:'start'});
+    if(id==='top') window.scrollTo({top:0, behavior: reduce?'auto':'smooth'});
+    else target.scrollIntoView({behavior: reduce?'auto':'smooth', block:'start'});
     cleanUrl();
   });
   window.addEventListener('load',()=>{
     const id=location.hash.slice(1), target=id && document.getElementById(id);
-    if(target) target.scrollIntoView({block:'start'});
+    if(target && id!=='top') target.scrollIntoView({block:'start'});
     if(location.hash || location.search) cleanUrl();
   });
 })();
