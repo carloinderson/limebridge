@@ -158,7 +158,7 @@
   document.addEventListener('keydown',e=>{ if(e.key==='Escape') document.querySelectorAll('.overlay:not([hidden])').forEach(closeOv); });
 
   /* Form */
-  const FORM_TO='info@limebridge.sr';
+  const FORM_ENDPOINT='https://formsubmit.co/ajax/64c50039b7d9c794f059349522c4fc38';
   const f=$('#cf');
   const msg={name:['Vul uw naam in.','Please enter your name.'], mail:['Vul een geldig e-mailadres in, bijvoorbeeld naam@bedrijf.sr.','Enter a valid email address, for example name@company.sr.'], msg:['Beschrijf kort uw vraag.','Briefly describe your question.'], ok:['Geef toestemming om uw aanvraag te kunnen verwerken.','Please give consent so we can process your request.']};
   const t=k=>msg[k][lang==='en'?1:0];
@@ -169,12 +169,28 @@
     $('#e-name').textContent=errs.name?t('name'):''; $('#e-mail').textContent=errs.mail?t('mail'):''; $('#e-msg').textContent=errs.msg?t('msg'):''; $('#e-ok').textContent=errs.ok?t('ok'):'';
     const first=Object.keys(errs).find(k=>errs[k]);
     if(first){ ({name:'#f-name',mail:'#f-mail',msg:'#f-msg',ok:'#f-ok'})[first] && $(({name:'#f-name',mail:'#f-mail',msg:'#f-msg',ok:'#f-ok'})[first]).focus(); return; }
-    const th=$('#thanks');
+    const th=$('#thanks'), btn=f.querySelector('button[type="submit"]');
     const subj=sel.options[sel.selectedIndex] ? sel.options[sel.selectedIndex].textContent : '';
-    const org=$('#f-org').value.trim(), tel=$('#f-tel').value.trim();
-    const body=[q,'','--','Naam: '+n, org?'Organisatie: '+org:'', 'E-mail: '+m, tel?'Telefoon: '+tel:'', 'Onderwerp: '+subj].filter((x,k)=>x!==''||k===1).join('\n');
-    th.hidden=false;
-    th.innerHTML = bi('Uw e-mailprogramma wordt geopend met uw aanvraag aan info@limebridge.sr. Klik daar op Verzenden. Gebeurt er niets? Mail ons dan rechtstreeks op info@limebridge.sr of bel (+597) 530185.','Your email app is opening with your request to info@limebridge.sr. Press Send there. Nothing happening? Email us directly at info@limebridge.sr or call (+597) 530185.');
-    location.href = 'mailto:'+FORM_TO+'?subject='+encodeURIComponent('Website-aanvraag: '+subj)+'&body='+encodeURIComponent(body);
+    const safe=n.replace(/</g,'&lt;');
+    btn.disabled=true; th.hidden=false;
+    th.innerHTML = bi('Uw aanvraag wordt verzonden…','Sending your request…');
+    fetch(FORM_ENDPOINT,{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Accept':'application/json'},
+      body:JSON.stringify({
+        _subject:'Website-aanvraag Limebridge: '+subj,
+        _template:'table', _captcha:'false', _honey:$('#f-hp').value,
+        Naam:n, Organisatie:$('#f-org').value.trim(), email:m, Telefoon:$('#f-tel').value.trim(),
+        Onderwerp:subj, Bericht:q
+      })
+    }).then(r=>r.json().then(d=>({ok:r.ok,d}))).then(({ok,d})=>{
+      if(!ok || String(d.success)!=='true'){ const e=new Error(d && d.message || 'send failed'); e.activation=/activat/i.test(e.message); throw e; }
+      th.innerHTML = bi(`Dank u, ${safe}. Uw aanvraag is verzonden; wij reageren binnen één werkdag.`, `Thank you, ${safe}. Your request has been sent; we respond within one business day.`);
+      f.reset(); fillSelect();
+    }).catch(err=>{
+      try{ console.warn('[Limebridge form]', err && err.message); }catch(_){}
+      if(err && err.activation){ th.innerHTML = bi('Bijna klaar: dit formulier moet eenmalig worden geactiveerd. Open de e-mail van FormSubmit in de mailbox info@limebridge.sr, klik op “Activate Form” en verstuur uw aanvraag daarna opnieuw.','Almost there: this form needs a one-time activation. Open the FormSubmit email in the info@limebridge.sr mailbox, click “Activate Form” and send your request again.'); return; }
+      th.innerHTML = bi('Het verzenden is niet gelukt. Probeer het opnieuw, of mail ons op info@limebridge.sr of bel (+597) 530185.','Sending failed. Please try again, or email info@limebridge.sr or call (+597) 530185.');
+    }).finally(()=>{ btn.disabled=false; });
   });
 })();
