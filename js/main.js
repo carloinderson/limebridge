@@ -193,4 +193,19 @@
       th.innerHTML = bi('Het verzenden is niet gelukt. Probeer het opnieuw, of mail ons op info@limebridge.sr of bel (+597) 530185.','Sending failed. Please try again, or email info@limebridge.sr or call (+597) 530185.');
     }).finally(()=>{ btn.disabled=false; });
   });
+  /* Schone adresbalk: ankerlinks scrollen zonder #... of ?... in de URL */
+  const cleanUrl=()=>{ try{ history.replaceState(null,'',location.pathname); }catch(e){} };
+  document.addEventListener('click',e=>{
+    const a=e.target.closest('a[href^="#"]'); if(!a) return;
+    const id=a.getAttribute('href').slice(1); if(!id) return;
+    const target=document.getElementById(id); if(!target) return;
+    e.preventDefault();
+    target.scrollIntoView({behavior: reduce?'auto':'smooth', block:'start'});
+    cleanUrl();
+  });
+  window.addEventListener('load',()=>{
+    const id=location.hash.slice(1), target=id && document.getElementById(id);
+    if(target) target.scrollIntoView({block:'start'});
+    if(location.hash || location.search) cleanUrl();
+  });
 })();
