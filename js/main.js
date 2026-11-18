@@ -158,6 +158,7 @@
   document.addEventListener('keydown',e=>{ if(e.key==='Escape') document.querySelectorAll('.overlay:not([hidden])').forEach(closeOv); });
 
   /* Form */
+  const FORM_ENDPOINT='https://formsubmit.co/ajax/info@limebridge.sr';
   const f=$('#cf');
   const msg={name:['Vul uw naam in.','Please enter your name.'], mail:['Vul een geldig e-mailadres in, bijvoorbeeld naam@bedrijf.sr.','Enter a valid email address, for example name@company.sr.'], msg:['Beschrijf kort uw vraag.','Briefly describe your question.'], ok:['Geef toestemming om uw aanvraag te kunnen verwerken.','Please give consent so we can process your request.']};
   const t=k=>msg[k][lang==='en'?1:0];
@@ -168,7 +169,26 @@
     $('#e-name').textContent=errs.name?t('name'):''; $('#e-mail').textContent=errs.mail?t('mail'):''; $('#e-msg').textContent=errs.msg?t('msg'):''; $('#e-ok').textContent=errs.ok?t('ok'):'';
     const first=Object.keys(errs).find(k=>errs[k]);
     if(first){ ({name:'#f-name',mail:'#f-mail',msg:'#f-msg',ok:'#f-ok'})[first] && $(({name:'#f-name',mail:'#f-mail',msg:'#f-msg',ok:'#f-ok'})[first]).focus(); return; }
-    const th=$('#thanks'); th.hidden=false;
-    th.innerHTML = bi(`Dank u, ${n.replace(/</g,'&lt;')}. Uw aanvraag is gereed. In de live-website wordt deze direct doorgestuurd naar info@limebridge.sr; wij reageren binnen één werkdag.`, `Thank you, ${n.replace(/</g,'&lt;')}. Your request is ready. On the live website it is forwarded directly to info@limebridge.sr; we respond within one business day.`);
+    const th=$('#thanks'), btn=f.querySelector('button[type="submit"]');
+    const subj=sel.options[sel.selectedIndex] ? sel.options[sel.selectedIndex].textContent : '';
+    const safe=n.replace(/</g,'&lt;');
+    btn.disabled=true; th.hidden=false;
+    th.innerHTML = bi('Uw aanvraag wordt verzonden…','Sending your request…');
+    fetch(FORM_ENDPOINT,{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Accept':'application/json'},
+      body:JSON.stringify({
+        _subject:'Website-aanvraag Limebridge: '+subj,
+        _template:'table', _captcha:'false', _honey:$('#f-hp').value,
+        Naam:n, Organisatie:$('#f-org').value.trim(), email:m, Telefoon:$('#f-tel').value.trim(),
+        Onderwerp:subj, Bericht:q
+      })
+    }).then(r=>r.json().then(d=>({ok:r.ok,d}))).then(({ok,d})=>{
+      if(!ok || String(d.success)!=='true') throw new Error(d && d.message || 'send failed');
+      th.innerHTML = bi(`Dank u, ${safe}. Uw aanvraag is verzonden; wij reageren binnen één werkdag.`, `Thank you, ${safe}. Your request has been sent; we respond within one business day.`);
+      f.reset(); fillSelect();
+    }).catch(()=>{
+      th.innerHTML = bi('Het verzenden is niet gelukt. Probeer het opnieuw, of mail ons op info@limebridge.sr of bel (+597) 530185.','Sending failed. Please try again, or email info@limebridge.sr or call (+597) 530185.');
+    }).finally(()=>{ btn.disabled=false; });
   });
 })();
